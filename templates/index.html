@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALPR System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">Automatic License Plate Recognition</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Upload Vehicle Image</h2>
+            <form id="uploadForm" class="space-y-4">
+                <div class="flex items-center justify-center w-full">
+                    <label for="fileInput" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                            <p class="mb-2 text-sm text-gray-500">Click to upload or drag and drop</p>
+                            <p class="text-xs text-gray-500">PNG, JPG (MAX. 5MB)</p>
+                        </div>
+                        <input id="fileInput" type="file" class="hidden" accept="image/*" />
+                    </label>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+                    Process Image
+                </button>
+            </form>
+        </div>
+
+        <div id="resultSection" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">Detection Results</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-medium mb-2">Original Image</h3>
+                    <img id="originalImage" class="w-full h-auto rounded border border-gray-200" src="" alt="Uploaded vehicle">
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">Detected License Plate</h3>
+                    <div class="relative">
+                        <img id="processedImage" class="w-full h-auto rounded border border-gray-200" src="" alt="Detected license plate">
+                        <div id="plateBox" class="absolute border-2 border-red-500"></div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-medium mb-1">Recognized Text</h3>
+                        <div id="plateText" class="p-3 bg-gray-50 rounded border border-gray-200 font-mono text-lg"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold mb-4">Sample Images</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="sample-image cursor-pointer" data-src="static/samples/sample1.jpg">
+                    <img src="static/samples/sample1.jpg" class="w-full h-32 object-cover rounded border border-gray-200 hover:border-blue-500 transition" alt="Sample 1">
+                </div>
+                <div class="sample-image cursor-pointer" data-src="static/samples/sample2.jpg">
+                    <img src="static/samples/sample2.jpg" class="w-full h-32 object-cover rounded border border-gray-200 hover:border-blue-500 transition" alt="Sample 2">
+                </div>
+                <div class="sample-image cursor-pointer" data-src="static/samples/sample3.jpg">
+                    <img src="static/samples/sample3.jpg" class="w-full h-32 object-cover rounded border border-gray-200 hover:border-blue-500 transition" alt="Sample 3">
+                </div>
+                <div class="sample-image cursor-pointer" data-src="static/samples/sample4.jpg">
+                    <img src="static/samples/sample4.jpg" class="w-full h-32 object-cover rounded border border-gray-200 hover:border-blue-500 transition" alt="Sample 4">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an image file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Display original image
+                    const originalImage = document.getElementById('originalImage');
+                    originalImage.src = URL.createObjectURL(file);
+                    
+                    // Display processed image (same as original for now)
+                    const processedImage = document.getElementById('processedImage');
+                    processedImage.src = URL.createObjectURL(file);
+                    
+                    // Display plate text
+                    document.getElementById('plateText').textContent = result.plate_text;
+                    
+                    // Show result section
+                    document.getElementById('resultSection').classList.remove('hidden');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing the image');
+            }
+        });
+
+        // Sample image click handler
+        document.querySelectorAll('.sample-image').forEach(img => {
+            img.addEventListener('click', () => {
+                document.getElementById('fileInput').files = new FileList();
+                document.getElementById('originalImage').src = img.dataset.src;
+                document.getElementById('processedImage').src = img.dataset.src;
+                document.getElementById('resultSection').classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
